@@ -41,7 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="BattleshipLogic.cs" />
     <Compile Include="Models\Enums.cs" />
     <Compile Include="Models\GridSpotModel.cs" />
     <Compile Include="Models\MessageModel.cs" />
