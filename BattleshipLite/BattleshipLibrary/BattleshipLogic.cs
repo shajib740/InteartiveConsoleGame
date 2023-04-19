@@ -1,6 +1,7 @@
 ﻿using BattleshipLibrary.Models;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Reflection;
@@ -36,7 +37,7 @@ namespace BattleshipLibrary
 
         public static bool PlaceShip(PlayerModel model, string location)
         {
-           
+
             (string row, int column) = SplitShotByRowAndColumn(location);
             //if (!int.TryParse(location.Substring(1, 1), out number) || string.IsNullOrEmpty(letter))
             //{
@@ -45,8 +46,8 @@ namespace BattleshipLibrary
             bool output = false;
             bool isValidLocation = ValidateGridLocation(model, row, column);
             bool isSpotOpen = ValidateShipSpot(model, row, column);
-            
-            
+
+
 
             if (isValidLocation && isSpotOpen)
             {
@@ -59,10 +60,38 @@ namespace BattleshipLibrary
                 model.ShipLocation.Add(gridSpot);
                 output = true;
             }
-           
+
             return output;
         }
+        public static void PlaceShipRandomly(PlayerModel player)
+        {
+            Random rnd = new Random();
+            int totalItem = 5;
+            List<string> letters = new List<string> { "A", "B", "C", "D", "E" };
 
+            List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+
+            do
+            {
+                int indexOfRow = rnd.Next(totalItem);
+                int indexOfColumn = rnd.Next(totalItem);
+                string row = letters[indexOfRow];
+                int column = numbers[indexOfColumn];
+
+                letters.RemoveAt(indexOfRow);
+                numbers.RemoveAt(indexOfColumn);
+                totalItem--;
+                GridSpotModel gridSpot = new GridSpotModel
+                {
+                    SpotLetter = row.ToUpper(),
+                    SpotNumber = column,
+                    Status = GridSpotStatus.Ship
+                };
+                player.ShipLocation.Add(gridSpot);
+            } while (player.ShipLocation.Count < 5);
+
+
+        }
         // Check if there is a ship already
         private static bool ValidateShipSpot(PlayerModel model, string row, int column)
         {
@@ -149,7 +178,7 @@ namespace BattleshipLibrary
         {
             string row = string.Empty;
             int column = 0;
-            
+
             if (shot.Length != 2)
             {
                 throw new ArgumentException("This shot was invalid type", "shot");
@@ -157,7 +186,7 @@ namespace BattleshipLibrary
 
             char[] shotArray = shot.ToArray();
             row = shotArray[0].ToString();
-            column =   int.Parse(shotArray[1].ToString()); ;
+            column = int.Parse(shotArray[1].ToString()); ;
 
             return (row, column);
         }
@@ -181,9 +210,10 @@ namespace BattleshipLibrary
             bool isAHit = false;
             foreach (var grid in opponent.ShipLocation)
             {
-                if (grid.SpotLetter == row && grid.SpotNumber == column && grid.Status == GridSpotStatus.Ship)
+                if (grid.SpotLetter == row.ToUpper() && grid.SpotNumber == column && grid.Status == GridSpotStatus.Ship)
                 {
-                   isAHit = true;
+                    isAHit = true;
+                    grid.Status = GridSpotStatus.Sunk;
                 }
             }
             return isAHit;
@@ -193,7 +223,7 @@ namespace BattleshipLibrary
         {
             foreach (var grid in opponent.ShotGrid)
             {
-                if (grid.SpotLetter == row && grid.SpotNumber == column)
+                if (grid.SpotLetter == row.ToUpper() && grid.SpotNumber == column)
                 {
                     grid.Status = isAHit ? GridSpotStatus.Hit : GridSpotStatus.Miss;
                 }

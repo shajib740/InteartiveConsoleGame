@@ -14,28 +14,24 @@ namespace GameUI
         static void Main(string[] args)
         {
             WelcomeMessage();
-            PlayerModel activePlayer = CreatePlayer("Player 1");
-            PlayerModel opponent = CreatePlayer("Player 2");
+            PlayerModel activePlayer = CreatePlayer("Player 1",false);
+            PlayerModel opponent = CreatePlayer("Player 2",true);
 
             PlayerModel winner = null;
 
             do
             {
-                // Display grid for activePlayer  on where they fired
-                DisplayshotGrid(activePlayer);
-
-
-                // Ask player  for a shot
-                Console.WriteLine("Please fire a shot");
-                string shotFired = Console.ReadLine();
-                // Determine if it is a valid shot
-                // Determine the result
-
+                Console.WriteLine($"Shot Grid of {opponent.UserName}");
+                DisplayshotGrid(opponent);
+               
+                
                 RecordPlayerShot(activePlayer, opponent);
+               
 
-
+                Console.WriteLine($"Shot Grid of {opponent.UserName}");
+                DisplayshotGrid(opponent);
+               
                 // Determine  if the game should continue
-
                 bool isGameOver = BattleshipLogic.IsGameOver(opponent);
 
                 if (isGameOver == true)
@@ -52,7 +48,7 @@ namespace GameUI
                     // Swap using tuple
                     (activePlayer, opponent) = (opponent, activePlayer);
                 }
-
+                Console.WriteLine();
             } while (winner == null);
 
             IdentifyWinner(winner);
@@ -63,20 +59,29 @@ namespace GameUI
         private static void IdentifyWinner(PlayerModel winner)
         {
             Console.WriteLine($"Congratulations to {winner.UserName}");
-            Console.WriteLine($"{winner.UserName} tool {BattleshipLogic.GetShotCount(winner)} shots.");
+            Console.WriteLine($"{winner.UserName} took {BattleshipLogic.GetShotCount(winner)} shots.");
         }
 
         private static void RecordPlayerShot(PlayerModel activePlayer, PlayerModel opponent)
         {
             bool isValidShot = false;
-            string row;
-            int column;
+            string row = "";
+            int column = 0;
             do
             {
-                string shot = AskforShot();
-                ( row,  column) = BattleshipLogic.SplitShotByRowAndColumn(shot);
+                string shot = AskforShot(activePlayer.UserName);
+                try
+                {
+                   
+                    (row, column) = BattleshipLogic.SplitShotByRowAndColumn(shot);
+                    isValidShot = BattleshipLogic.ValidateShot(opponent, row, column);
+                }
+                catch (Exception ex)
+                {
+                    isValidShot = false;
+                }
 
-                isValidShot = BattleshipLogic.ValidateShot(activePlayer, row, column);
+               
                 if (isValidShot == false)
                 {
                     Console.WriteLine("Invalid shot location. Please try again");
@@ -88,13 +93,29 @@ namespace GameUI
             // Determine shot results (hit/miss)
             bool isAHit = BattleshipLogic.IdentifyShotResult(opponent, row, column);
 
-            // Record results
+           
             BattleshipLogic.MarkShotResult(opponent, row, column, isAHit);
+            DisplayShotResults(row, column, isAHit);
+            Console.WriteLine();
         }
 
-        private static string AskforShot()
+        private static void DisplayShotResults(string row, int column, bool isAHit)
         {
-            Console.WriteLine("Please enter your shot selection");
+            if (isAHit)
+            {
+                Console.WriteLine($" {row}{column} is a Hit");
+            }
+            else
+            {
+                Console.WriteLine($" {row}{column} is a miss");
+            }
+            Console.WriteLine();
+        }
+
+        private static string AskforShot(string userName)
+        {
+
+            Console.WriteLine($"Please enter your shot selection {userName}");
             string output = Console.ReadLine();
             return output;  
         }
@@ -110,25 +131,25 @@ namespace GameUI
                     currentRow = gridspot.SpotLetter;
                     Console.WriteLine();
                 }
-                if (gridspot.Status != GridSpotStatus.Empty)
+                if (gridspot.Status == GridSpotStatus.Empty)
                 {
-                    Console.Write($"Shot location {gridspot.SpotLetter}{gridspot.SpotNumber} ");
+                    Console.Write($"{gridspot.SpotLetter}{gridspot.SpotNumber} ");
                 }
                 else if (gridspot.Status == GridSpotStatus.Hit)
                 {
-                    Console.WriteLine(" X ");
+                    Console.Write(" X ");
                 }
                 else if (gridspot.Status == GridSpotStatus.Miss)
                 {
-                    Console.WriteLine(" O ");
+                    Console.Write(" O ");
                 }
                 else
                 {
                     Console.Write(" ? ");
                 }
-
-
             }
+            Console.WriteLine();
+            Console.WriteLine();
         }
 
         private static void WelcomeMessage()
@@ -137,19 +158,24 @@ namespace GameUI
             Console.WriteLine("Created by Shajib");
             Console.WriteLine();
         }
-        private static PlayerModel CreatePlayer(string playerTitle)
+        private static PlayerModel CreatePlayer(string playerTitle,bool isRandomGenerate)
         {
 
             PlayerModel output = new PlayerModel();
             Console.WriteLine($"Player information for {playerTitle}");
-            // ask player for their name
+         
             output.UserName = AskForPlayerName();
-            // Load up the shot grid
+           
             BattleshipLogic.InitializeShotGrid(output);
+            if (isRandomGenerate)
+            {
+                BattleshipLogic.PlaceShipRandomly(output);
+            }
+            else
+            {
+                PlaceShip(output);
+            }
 
-            // Ask the user for their 5 ship placements
-            PlaceShip(output);
-            // clear
             Console.Clear();
 
             return output;
@@ -168,14 +194,20 @@ namespace GameUI
                 Console.Write($"Where do you want to place ship number {model.ShipLocation.Count + 1}:");
                 string location = Console.ReadLine();
 
-                bool isValidLocation = BattleshipLogic.PlaceShip(model, location);
+                bool isValidLocation = false; ;  // Check and store the ship location
+
+                try
+                {
+                    isValidLocation = BattleshipLogic.PlaceShip(model, location);  // Check and store the ship location
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: "+ ex.Message);
+                    isValidLocation = false;
+                }
                 if (isValidLocation == false)
                 {
                     Console.WriteLine("That was not a valid location. Please add again.");
-                }
-                else
-                {
-                    BattleshipLogic.AddShipPlcae(model, location, GridSpotStatus.Ship);
                 }
 
             } while (model.ShipLocation.Count < 5);
